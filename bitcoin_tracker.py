@@ -2,6 +2,7 @@
 # Assignment 3  - Secure Systems - Bitcoin Tracker
 # Student No: D23124630
 
+import binascii
 import socket
 import time
 import random
@@ -18,8 +19,11 @@ def version_payload(peer_ip_address):
     version = 60002
     services = 1
     timestamp = int(time.time()) #Unix timestamp
+    
     addr_local = struct.pack('>8s16sH', b'\x01', 
         bytearray.fromhex("00000000000000000000ffff") + socket.inet_aton(peer_ip_address), PORT)
+    addr_peer = struct.pack('>8s16sH', b'\x01', 
+        bytearray.fromhex("00000000000000000000ffff") + socket.inet_aton("127.0.0.1"), PORT)
     nonce = random.getrandbits(64)
     start_height = 843638
     
@@ -28,8 +32,8 @@ def version_payload(peer_ip_address):
     # documentation reference : https://docs.python.org/3/library/struct.html
     # The below sub_version is derived from version message sample in the link : https://en.bitcoin.it/wiki/Protocol_documentation#version
     
-    payload = struct.pack('<LQQ26sQ16sL', version, services, timestamp,
-                          addr_local, nonce, b'\x0F' + "/Satoshi:0.7.2/".encode(), start_height)
+    payload = struct.pack('<LQQ26s26sQ16sL', version, services, timestamp,
+                          addr_local,addr_peer, nonce, b'\x0F' + "/Satoshi:0.7.2/".encode(), start_height)
     return(payload)
 
 # This function is responsible to add necessary header with magic Number, type of the message(version/getData), payload length, payload checksum
@@ -61,6 +65,12 @@ if __name__ == '__main__':
     # 1. Start the handshake with bitcoin node with "version"
     s.send(version_message)
     response_data = s.recv(buffer_size)
+    
+
+    print("Request:")
+    print((binascii.hexlify(version_message)))
+    print("Response:")
+    print(binascii.hexlify(response_data))
    
     # Close the TCP connection
     s.close()
