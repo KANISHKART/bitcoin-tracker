@@ -12,7 +12,7 @@ import hashlib
 # Mostly in bitcoin node the port will be 8333
 PORT= 8333
 
-# Below version payload is exracted from  https://en.bitcoin.it/wiki/Protocol_documentation#version
+# Below version payload values is exracted from  https://en.bitcoin.it/wiki/Protocol_documentation#version
 # peer_ip_address is the bitcoin node 
 def version_payload(peer_ip_address):
     
@@ -42,6 +42,12 @@ def payload_message(magicNumber, command, payload):
     checksum = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[0:4]
     return(struct.pack('L12sL4s', magicNumber, command.encode(), len(payload), checksum) + payload)
 
+# Below verack payload values is exracted from  https://en.bitcoin.it/wiki/Protocol_documentation#verack
+# This is sent in reply to version from node
+# this message consist only message header(Magic Number, "verack", payload=0,checksum)
+# so the value is retun as is
+def verack_message():
+    return bytearray.fromhex("f9beb4d976657261636b000000000000000000005df6e0e2")
 
 
 # below is the starting point for the program
@@ -64,9 +70,19 @@ if __name__ == '__main__':
     
     # 1. Start the handshake with bitcoin node with "version"
     s.send(version_message)
-    response_data = s.recv(buffer_size)
+    response_data = s.recv(buffer_size) #max amount of data to be recived with thissingle call. so there won't be any big message recieved
+    
+    
     
 
+    print("Request:")
+    print((binascii.hexlify(version_message)))
+    print("Response:")
+    print(binascii.hexlify(response_data))
+    
+    s.send(verack_message())
+    response_verack=s.recv(buffer_size)
+    
     print("Request:")
     print((binascii.hexlify(version_message)))
     print("Response:")
