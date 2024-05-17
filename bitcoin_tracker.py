@@ -73,6 +73,8 @@ if __name__ == '__main__':
     # Establish Socket TCP Connection
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((peer_ip_address, PORT))
+    
+    print("Initiaiting protocol handshake...")
   
     #The 'payload' variable will hold the byte array of the body
     payload = version_payload(peer_ip_address)
@@ -84,14 +86,21 @@ if __name__ == '__main__':
     s.send(version_message)
     response_data = s.recv(buffer_size) #max amount of data to be recived with thissingle call. so there won't be any big message recieved
  
+    print("Version recieved from Bitcoin network")
     
     # 2. Send verack after version
     s.send(verack_message())
     response_verack=s.recv(buffer_size)
     
+    print("Verack recieved from Bitcoin network")
+    
     # 3. 'get_addr' after verack
     getAddr_message= payload_message(magic_value,'pong', getaddr_message())
     s.send(getAddr_message)
+    
+    print("Handshake Successful")
+    
+    print("Listening to inventory messages in bitcoin network...")
         
     while(True):
         response_addr=s.recv(buffer_size)
@@ -110,7 +119,7 @@ if __name__ == '__main__':
             # Print the inventory payloads
             inv_payload= response_addr[24:]
             
-            print("Inventory Details    :", )
+            print("Inventory Details:\n")
             
             # Extract the count
             count = struct.unpack('<B', inv_payload[:1])[0]  # '<B' is little-endian unsigned char
