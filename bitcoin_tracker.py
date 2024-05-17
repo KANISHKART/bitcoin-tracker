@@ -74,7 +74,7 @@ if __name__ == '__main__':
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((peer_ip_address, PORT))
     
-    print("Initiaiting protocol handshake...")
+    print("\nInitiaiting protocol handshake...")
   
     #The 'payload' variable will hold the byte array of the body
     payload = version_payload(peer_ip_address)
@@ -100,17 +100,20 @@ if __name__ == '__main__':
     
     print("Handshake Successful")
     
-    print("Listening to inventory messages in bitcoin network...")
-        
+    print("Listening to inventory messages in bitcoin network...\n")
+    
+    print("---------------------------------------------------------------------------------------------------------")
     while(True):
-        response_addr=s.recv(buffer_size)
+        response_addr=s.recv(3072) # increased to accomodate more message from bitcoin network
         magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', response_addr[:24])
 
         # filtering command type
         command_type= safe_utf8_decode(command)
-        
+       
         if('inv' in command_type):
             # Print the decoded header fields
+            
+           
             print("Packet Magic         :", hex(magic_number))
             print("Command name         :", command_type)
             print("Payload Length       :", payload_length)
@@ -119,7 +122,7 @@ if __name__ == '__main__':
             # Print the inventory payloads
             inv_payload= response_addr[24:]
             
-            print("Inventory Details:\n")
+            print("Inventory Details:",response_addr[24:],"\n")
             
             # Extract the count
             count = struct.unpack('<B', inv_payload[:1])[0]  # '<B' is little-endian unsigned char
