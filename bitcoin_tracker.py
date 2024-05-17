@@ -54,6 +54,14 @@ def getaddr_message():
     # The payload for getaddr is empty
     return b''
 
+def safe_utf8_decode(byte_sequence):
+    try:
+        decoded_text = byte_sequence.decode('utf-8')
+        return decoded_text
+    except UnicodeDecodeError:
+        # If decoding fails, return the original byte sequence
+        return byte_sequence
+    
 # below is the starting point for the program
 if __name__ == '__main__':
     
@@ -81,55 +89,61 @@ if __name__ == '__main__':
     s.send(verack_message())
     response_verack=s.recv(buffer_size)
     
-    # # 3. 'get_addr' after verack
-    # getAddr_message= payload_message(magic_value,'getaddr', getaddr_message())
-    # s.send(getAddr_message)
-    
+    # 3. 'get_addr' after verack
+    getAddr_message= payload_message(magic_value,'pong', getaddr_message())
+    s.send(getAddr_message)
+        
     while(True):
         response_addr=s.recv(buffer_size)
         magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', response_addr[:24])
 
-        # # Extract the payload
-        # payload = response_verack[24:24 + payload_length]
-
-        # Print the decoded header fields
-        print("Magic Number:", hex(magic_number))
-        print("Command:", command)
-        print("Payload Length:", payload_length)
-        print("Checksum:", checksum.hex())
-
-        # Print the payload
-        print("Payload:", payload.hex())
-         
-        print("---------------------------------------------------------------------------------------------------------")
-        print()
+        # filtering command type
+        command_type= safe_utf8_decode(command)
         
-    
-   
-    # print(response_addr[4:13])
-    # print(response_addr[13:17])
-    
-    # print(struct.unpack('<12s', response_addr[4:12]))
-     # Parse the header
-     
-    # print(len(response_addr))
-    # magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', response_addr[:24])
+        if('inv' in command_type):
+            # Print the decoded header fields
+            print("Packet Magic         :", hex(magic_number))
+            print("Command name         :", command_type)
+            print("Payload Length       :", payload_length)
+            print("Payload Checksum     :", checksum.hex())
+            
+            # Print the inventory payloads
+            inv_payload= response_addr[24:]
+            
+            print("Inventory Details    :", )
+            
+            # Extract the count
+            count = struct.unpack('<B', inv_payload[:1])[0]  # '<B' is little-endian unsigned char
+            print(f'Count: {count}')
+            
+            # Initialize list to hold inventory vectors
+            inventory_vectors = []
 
-    # # # Extract the payload
-    # # payload = response_verack[24:24 + payload_length]
+            # Offset to start of inventory vectors
+            offset = 1
 
-    # # Print the decoded header fields
-    # print("Magic Number:", hex(magic_number))
-    # print("Command:", command.decode('utf-8').strip('\x00'))
-    # print("Payload Length:", payload_length)
-    # print("Checksum:", checksum.hex())
+            # Each inventory vector is 36 bytes
+            vector_size = 36
 
-    # # Print the payload
-    # print("Payload:", payload.hex())
-    
-   
-   
-    # Close the TCP connection
+            for i in range(count):
+                # Extract type (4 bytes) and hash (32 bytes)
+                vector_data = inv_payload[offset:offset + vector_size]
+                vector_type = struct.unpack('<I', vector_data[:4])[0]  # '<I' is little-endian unsigned int
+                vector_hash = vector_data[4:]
+                
+                # Append to list
+                inventory_vectors.append((vector_type, vector_hash.hex()))
+                
+                # Update offset
+                offset += vector_size
+
+            # Print the inventory vectors
+            for idx, (vector_type, vector_hash) in enumerate(inventory_vectors):
+                print(f'Inventory Vector {idx + 1}:')
+                print(f'  Type: {vector_type}')
+                print(f'  Hash: {vector_hash}')
+                
+            print("---------------------------------------------------------------------------------------------------------")
     s.close()
 
  
