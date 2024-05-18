@@ -208,24 +208,22 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 
             elif "block" in str(command_name):
                 print("----------------------------- Message Header -------------------------------")
-                logging.info("----------------------------- Message Header -------------------------------")
+                logging.info("\n----------------------------- Message Header -------------------------------\n")
                  # Parse the message header
                 magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', buffer[:24])
 
-                logging.info("Message Headers-----------------------\n")
-                
                 print("Packet Magic         :", hex(magic_number))
                 print("Command name         :", command)
                 print("Payload Length       :", payload_length)
                 print("Payload Checksum     :", checksum.hex())
                         
                 logging.info("Packet Magic         :%s", hex(magic_number))
-                logging.info("Command name         : block",)
+                logging.info("Command name         :block",)
                 logging.info("Payload Length       :%s", payload_length)
                 logging.info("Payload Checksum     :%s", checksum.hex())
                 
                 ############ Main Print statements #################
-                logging.info("#####################  Block Details  ##########################\n")
+                logging.info("\n#####################  Block Details  ##########################\n")
                 
                
                 
@@ -234,11 +232,11 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 
                 logging.info("Block Version         :%s", hex(version))
                 logging.info("Block Previous Hash   :%s", bytes.fromhex(prev_block_hash)[::-1].hex())
-                logging.info("Merkle Root       :%s", bytes.fromhex(merkle_root)[::-1].hex())
-                logging.info("Block timestamp     :%s", timestamp)
-                logging.info("Bits     :%s", bits)
-                logging.info("Nonce     :%s", nonce)
-                logging.info("Total Transactions     :%s", txn_count)
+                logging.info("Merkle Root           :%s", bytes.fromhex(merkle_root)[::-1].hex())
+                logging.info("Block timestamp       :%s", timestamp)
+                logging.info("Bits                  :%s", bits)
+                logging.info("Nonce                 :%s", nonce)
+                logging.info("Total Transactions    :%s", txn_count)
                 
                 print("Block Version         :", hex(version))
                 print("Block Previous Hash   :", bytes.fromhex(prev_block_hash)[::-1].hex())
@@ -250,17 +248,16 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 
                 # -----------------  hash verification --------------------
                 
-                
                 # converting the hash to block hash
                 hash= padded_block_hash(str(hash))
-                logging.info("\nBlock Hash      :%s", hash)
+                logging.info("Block Hash            :%s", hash)
                 print("Block Hash : ",hash)
                 
                 # calculate hash based on blocker headers as verison to nonce is present in position 24: 104 so we parse that to get the value 
                 calculated_hash= calculate_block_hash(buffer[24:104])
             
                 print("\nCalculated Hash:", calculated_hash)
-                logging.info("\nCalculated Hash :%s", calculated_hash)
+                logging.info("\nCalculated Hash     :%s", calculated_hash)
                 
                 if(calculated_hash == hash):
                     print("Hashes Match! Block is Valid.")
@@ -269,12 +266,7 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                     print("Hashes Do Not Match! Block is Invalid.")
                     logging.info("Hashes Do Not Match! Block is Invalid.")
                 
-                
-                logging.info("----------------------- End of Block details ---------------------------------\n")
-                # if calculated_hash == hash:
-                #     print("Hashes Match! Block is Valid.")
-                # else:
-                #     print("Hashes Do Not Match! Block is Invalid.")
+                logging.info("\n----------------------- End of Block details ---------------------------------\n")
                 
             received_tx_count += 1
             

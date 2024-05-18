@@ -1,8 +1,8 @@
 D2314630 - Knaishkar Thirunvaukkarasu
 
-1. Run the code
+1. Run the code by executing below command
 
->> python bitcoun_tracker.py  
+>> python bitcoin_tracker.py  
 
 2. Provide lastet block hash or height in the input 
 
@@ -22,5 +22,4 @@ Link: https://www.blockchain.com/explorer/blocks/btc?page=1
 
 9. Also for transaction I have included the type and som common messages
 
-
-![alt text](image.png)
+10. I have provided some input and out put images for your reference. "sample_input.png has the input sample, "sample_output.png" has the output sample
