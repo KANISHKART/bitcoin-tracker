@@ -225,8 +225,6 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 ############ Main Print statements #################
                 logging.info("\n#####################  Block Details  ##########################\n")
                 
-               
-                
                 # Parse block data
                 version, prev_block_hash, merkle_root, timestamp, bits, nonce, txn_count = parse_block_data(buffer[24:])
                 
