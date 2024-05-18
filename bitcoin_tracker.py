@@ -69,6 +69,52 @@ def safe_utf8_decode(byte_sequence):
     except UnicodeDecodeError:
         # If decoding fails, return the original byte sequence
         return byte_sequence
+    
+import hashlib
+
+# Function to perform double SHA-256 hashing
+def double_sha256(data):
+    return hashlib.sha256(hashlib.sha256(data).digest()).digest()
+
+# Function to parse the block header fields from the byte array
+def parse_block_header(header_bytes):
+    # Ensure the byte array has at least 80 bytes for a complete block header
+    if len(header_bytes) < 80:
+        raise ValueError("Insufficient bytes for block header")
+
+    # Parse individual fields
+    version = int.from_bytes(header_bytes[:4], 'little')  # Version (4 bytes, little-endian)
+    prev_block_hash = header_bytes[4:36]  # Previous block hash (32 bytes)
+    merkle_root = header_bytes[36:68]  # Merkle root (32 bytes)
+    timestamp = int.from_bytes(header_bytes[68:72], 'little')  # Timestamp (4 bytes, little-endian)
+    bits = int.from_bytes(header_bytes[72:76], 'little')  # Bits (4 bytes, little-endian)
+    nonce = int.from_bytes(header_bytes[76:80], 'little')  # Nonce (4 bytes, little-endian)
+
+    return version, prev_block_hash, merkle_root, timestamp, bits, nonce
+
+# Function to calculate the block hash from the byte array
+def calculate_block_hash(header_bytes):
+    # Parse block header fields
+    version, prev_block_hash, merkle_root, timestamp, bits, nonce = parse_block_header(header_bytes)
+    
+    # Concatenate header fields into a single byte array
+    header_data = (
+        version.to_bytes(4, 'little') +  # Version (4 bytes, little-endian)
+        prev_block_hash +  # Previous block hash (32 bytes)
+        merkle_root +  # Merkle root (32 bytes)
+        timestamp.to_bytes(4, 'little') +  # Timestamp (4 bytes, little-endian)
+        bits.to_bytes(4, 'little') +  # Bits (4 bytes, little-endian)
+        nonce.to_bytes(4, 'little')  # Nonce (4 bytes, little-endian)
+    )
+    
+    # Perform double SHA-256 hashing
+    block_hash = double_sha256(header_data)
+    
+    # Convert hash to hexadecimal representation
+    block_hash_hex = block_hash[::-1].hex()  # Reverse byte order for little-endian
+    
+    return block_hash_hex
+
 
 # Function to convert Unix timestamp to human-readable datetime
 def unix_timestamp_to_datetime(timestamp):
@@ -161,8 +207,8 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 print("Payload Checksum   :", g_checksum.hex())
                 
             elif "block" in str(command_name):
-                print("##################### block details ##########################")
-                logging.info("##################### block details ##########################")
+                print("----------------------------- Message Header -------------------------------")
+                logging.info("----------------------------- Message Header -------------------------------")
                  # Parse the message header
                 magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', buffer[:24])
 
@@ -181,10 +227,7 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 ############ Main Print statements #################
                 logging.info("#####################  Block Details  ##########################\n")
                 
-                #converting the hash to block hash
-                hash= padded_block_hash(str(hash))
-                logging.info("Block Hash      :%s", hash)
-                print("Block Hash : ",hash)
+               
                 
                 # Parse block data
                 version, prev_block_hash, merkle_root, timestamp, bits, nonce, txn_count = parse_block_data(buffer[24:])
@@ -205,9 +248,29 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 print("Nonce     :", nonce)
                 print("Total Transactions     :", txn_count)
                 
+                # -----------------  hash verification --------------------
                 
                 
-                logging.info("##################### ##########################\n")
+                # converting the hash to block hash
+                hash= padded_block_hash(str(hash))
+                logging.info("\nBlock Hash      :%s", hash)
+                print("Block Hash : ",hash)
+                
+                # calculate hash based on blocker headers as verison to nonce is present in position 24: 104 so we parse that to get the value 
+                calculated_hash= calculate_block_hash(buffer[24:104])
+            
+                print("\nCalculated Hash:", calculated_hash)
+                logging.info("\nCalculated Hash :%s", calculated_hash)
+                
+                if(calculated_hash == hash):
+                    print("Hashes Match! Block is Valid.")
+                    logging.info("Hashes Match! Block is Valid.")
+                else:
+                    print("Hashes Do Not Match! Block is Invalid.")
+                    logging.info("Hashes Do Not Match! Block is Invalid.")
+                
+                
+                logging.info("----------------------- End of Block details ---------------------------------\n")
                 # if calculated_hash == hash:
                 #     print("Hashes Match! Block is Valid.")
                 # else:
