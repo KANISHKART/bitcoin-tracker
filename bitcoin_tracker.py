@@ -74,16 +74,45 @@ def safe_utf8_decode(byte_sequence):
 def unix_timestamp_to_datetime(timestamp):
     return datetime.datetime.fromtimestamp(timestamp).strftime('%d %B %Y at %H:%M')
 
+# To upack variable integer as per https://en.bitcoin.it/wiki/Protocol_documentation#Variable_length_integer 
+def parse_var_int(data, offset):
+    # Read the first byte to determine the encoding format
+    first_byte = data[offset]
+    
+    # If the first byte is less than 0xFD (253), it's a single byte integer
+    if first_byte < 0xFD:
+        return first_byte, offset + 1
+    
+    # If the first byte is 0xFD, the next 2 bytes represent the integer
+    elif first_byte == 0xFD:
+        # Unpack 2 bytes (little-endian) starting from the next byte after the first byte
+        value = struct.unpack('<H', data[offset + 1:offset + 3])[0]
+        # Return the value and the new offset, which is 3 bytes ahead of the original offset
+        return value, offset + 3
+    
+    # If the first byte is 0xFE, the next 4 bytes represent the integer
+    elif first_byte == 0xFE:
+        # Unpack 4 bytes (little-endian) starting from the next byte after the first byte
+        value = struct.unpack('<I', data[offset + 1:offset + 5])[0]
+        # Return the value and the new offset, which is 5 bytes ahead of the original offset
+        return value, offset + 5
+    
+    # If the first byte is 0xFF, the next 8 bytes represent the integer
+    else:
+        # Unpack 8 bytes (little-endian) starting from the next byte after the first byte
+        value = struct.unpack('<Q', data[offset + 1:offset + 9])[0]
+        # Return the value and the new offset, which is 9 bytes ahead of the original offset
+        return value, offset + 9
+
 # Function to parse the block data and extract information
 def parse_block_data(block_data):
     version = struct.unpack('<I', block_data[:4])[0]
     prev_block_hash = block_data[4:36].hex()
     merkle_root = block_data[36:68].hex()
-    print("original payload::",block_data[36:68])
     timestamp = unix_timestamp_to_datetime(struct.unpack('<I', block_data[68:72])[0])
     bits = struct.unpack('<I', block_data[72:76])[0]
     nonce = struct.unpack('<I', block_data[76:80])[0]
-    txn_count = struct.unpack('<B', block_data[80:81])[0]
+    txn_count, txn_start = parse_var_int(block_data, 80)
    
     txn_start = 81
     # for _ in range(txn_count):
@@ -137,9 +166,8 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                  # Parse the message header
                 magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', buffer[:24])
 
-                # Parse the message header
-                magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', buffer[:24])
-
+                logging.info("Message Headers-----------------------\n")
+                
                 print("Packet Magic         :", hex(magic_number))
                 print("Command name         :", command)
                 print("Payload Length       :", payload_length)
@@ -150,6 +178,14 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 logging.info("Payload Length       :%s", payload_length)
                 logging.info("Payload Checksum     :%s", checksum.hex())
                 
+                ############ Main Print statements #################
+                logging.info("#####################  Block Details  ##########################\n")
+                
+                #converting the hash to block hash
+                hash= padded_block_hash(str(hash))
+                logging.info("Block Hash      :%s", hash)
+                print("Block Hash : ",hash)
+                
                 # Parse block data
                 version, prev_block_hash, merkle_root, timestamp, bits, nonce, txn_count = parse_block_data(buffer[24:])
                 
@@ -157,14 +193,9 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 logging.info("Block Previous Hash   :%s", bytes.fromhex(prev_block_hash)[::-1].hex())
                 logging.info("Merkle Root       :%s", bytes.fromhex(merkle_root)[::-1].hex())
                 logging.info("Block timestamp     :%s", timestamp)
-                logging.info("Nonce     :%s", bits)
+                logging.info("Bits     :%s", bits)
                 logging.info("Nonce     :%s", nonce)
-                
-                ############ Main Print statements #################
-                
-                # Block created date (e.g. 1st April 2024 at 20:40)
-                # The nonce that was used to successfully hash the block, and the difficulty level
-                
+                logging.info("Total Transactions     :%s", txn_count)
                 
                 print("Block Version         :", hex(version))
                 print("Block Previous Hash   :", bytes.fromhex(prev_block_hash)[::-1].hex())
@@ -172,15 +203,9 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 print("Block timestamp    :", timestamp)
                 print("Bits     :", bits)
                 print("Nonce     :", nonce)
+                print("Total Transactions     :", txn_count)
                 
-                # hash verification
                 
-                #converting the hash to block hash
-                hash= padded_block_hash(str(hash))
-                
-                logging.info("Block Hash      :%s", hash)
-                
-                print("Block Hash : ",hash)
                 
                 logging.info("##################### ##########################\n")
                 # if calculated_hash == hash:
