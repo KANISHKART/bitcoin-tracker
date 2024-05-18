@@ -118,3 +118,12 @@ INFO:root:  Hash: 00dad2584b5701f5a48210d18f15269c0f055b0d192d4e43f2f1b045322e1d
 INFO:root:Inventory Vector 9:
 INFO:root:  Type: 1
 INFO:root:  Hash: a83d551581aea31b40b4ee07b8001666f29696fe7a8649aaadaf97d2e6ea3f08
+INFO:root:
+Initiaiting protocol handshake...
+INFO:root:Version recieved from Bitcoin network
+INFO:root:Verack recieved from Bitcoin network
+INFO:root:Handshake Successful
+INFO:root:Listening to inventory vectors to get transaction & block details in bitcoin network...
+
+INFO:root:---------------------------------------------------------------------------------------------------------
+
