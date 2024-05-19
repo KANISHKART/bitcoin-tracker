@@ -20,5 +20,7 @@ Link: https://www.blockchain.com/explorer/blocks/btc?page=1
 
 8. TO review the answers just open the log files and wait for blocks to arrive.. 
 
+9. Also for transaction I have included the type and som common messages
+
 
 ![alt text](image.png)
