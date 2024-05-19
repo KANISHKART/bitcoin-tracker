@@ -18,5 +18,7 @@ Link: https://www.blockchain.com/explorer/blocks/btc?page=1
 
 7. If the code is not working kindly ping me in d23124630@mytudublin.ie
 
+8. TO review the answers just open the log files and wait for blocks to arrive.. 
+
 
 ![alt text](image.png)

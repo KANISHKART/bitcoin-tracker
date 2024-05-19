@@ -84,7 +84,7 @@ def parse_block_data(block_data):
     bits = struct.unpack('<I', block_data[72:76])[0]
     nonce = struct.unpack('<I', block_data[76:80])[0]
     txn_count = struct.unpack('<B', block_data[80:81])[0]
-    # transactions = []
+   
     txn_start = 81
     # for _ in range(txn_count):
     #     txn_value = struct.unpack('<Q', block_data[txn_start + 8:txn_start + 16])[0] / 10**8
@@ -305,7 +305,7 @@ if __name__ == '__main__':
                     offset += vector_size
 
                 
-                # Print the inventory vectors
+                # Print the inventory vectors as they have been recieved
                 for idx, (vector_type, vector_hash) in enumerate(inventory_vectors):
                     print(f'Inventory Vector {idx + 1}:')
                     print(f'  Type: {vector_type}')
