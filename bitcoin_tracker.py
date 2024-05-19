@@ -61,7 +61,6 @@ def payload_message(magicNumber, command, payload):
 def verack_message():
     return bytearray.fromhex("f9beb4d976657261636b000000000000000000005df6e0e2")
               
-
 # This is used to parse the command type in header messages
 def safe_utf8_decode(byte_sequence):
     try:
@@ -71,91 +70,9 @@ def safe_utf8_decode(byte_sequence):
         # If decoding fails, return the original byte sequence
         return byte_sequence
 
-def var_int(buffer, offset):
-    """Parse a Bitcoin variable integer"""
-    value = buffer[offset]
-    if value < 0xfd:
-        return value, 1
-    elif value == 0xfd:
-        return struct.unpack('<H', buffer[offset + 1:offset + 3])[0], 3
-    elif value == 0xfe:
-        return struct.unpack('<I', buffer[offset + 1:offset + 5])[0], 5
-    else:
-        return struct.unpack('<Q', buffer[offset + 1:offset + 9])[0], 9
-
-def parse_transaction(tx_payload):
-    offset = 0
-
-    # Parse version
-    version, = struct.unpack_from('<I', tx_payload, offset)
-    offset += 4
-   
-    # Check for optional flag
-    flag = None
-    if tx_payload[offset:offset + 2] == b'\x00\x01':
-        flag = tx_payload[offset:offset + 2]
-        offset += 2
-   
-
-    # Parse input count
-    tx_in_count, var_int_size = var_int(tx_payload, offset)
-    offset += var_int_size
-  
-
-    # Parse inputs
-    tx_ins = []
-    for _ in range(tx_in_count):
-        tx_in = {}
-        tx_in['previous_output'] = tx_payload[offset:offset + 32]
-        offset += 32
-        tx_in['index'], = struct.unpack_from('<I', tx_payload, offset)
-        offset += 4
-        script_length, var_int_size = var_int(tx_payload, offset)
-        offset += var_int_size
-        tx_in['signature_script'] = tx_payload[offset:offset + script_length]
-        offset += script_length
-        tx_in['sequence'], = struct.unpack_from('<I', tx_payload, offset)
-        offset += 4
-        tx_ins.append(tx_in)
-
-
-    # Parse output count
-    tx_out_count, var_int_size = var_int(tx_payload, offset)
-    offset += var_int_size
-    
-    # Parse outputs
-    tx_outs = []
-    for _ in range(tx_out_count):
-        tx_out = {}
-        tx_out['value'], = struct.unpack_from('<Q', tx_payload, offset)
-        offset += 8
-        script_length, var_int_size = var_int(tx_payload, offset)
-        offset += var_int_size
-        tx_out['pk_script'] = tx_payload[offset:offset + script_length]
-        offset += script_length
-        tx_outs.append(tx_out)
-   
-
-    # Parse lock_time
-    lock_time, = struct.unpack_from('<I', tx_payload, offset)
-    offset += 4
-  
-
-    # Return parsed transaction as a dictionary
-    transaction = {
-        'version': version,
-        'flag': flag,
-        'inputs': tx_ins,
-        'outputs': tx_outs,
-        'lock_time': lock_time
-    }
-
-    return transaction
-
 # Function to convert Unix timestamp to human-readable datetime
 def unix_timestamp_to_datetime(timestamp):
     return datetime.datetime.fromtimestamp(timestamp).strftime('%d %B %Y at %H:%M')
-
 
 # Function to parse the block data and extract information
 def parse_block_data(block_data):
@@ -193,6 +110,7 @@ def calculate_block_hash(block_data):
     block_hash = hashlib.sha256(hashlib.sha256(block_data).digest()).digest()
     return block_hash[::-1].hex()
 
+# Read "tx" and "block messages"
 def read_tx_block_messages(sock, expected_tx_count, hash):
     buffer = b""
     received_tx_count = 0
@@ -212,14 +130,10 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 print("Command name       :", command_name)
                 print("Payload Length     :", g_payload_length)
                 print("Payload Checksum   :", g_checksum.hex())
-
-                # Process the transaction payload here
-                tx_payload = buffer[24:24 + g_payload_length]
-                print(parse_transaction(tx_payload))
-
                 
             elif "block" in str(command_name):
                 print("##################### block details ##########################")
+                logging.info("##################### block details ##########################")
                  # Parse the message header
                 magic_number, command, payload_length, checksum = struct.unpack('<L12sL4s', buffer[:24])
 
@@ -246,6 +160,12 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 logging.info("Nonce     :%s", bits)
                 logging.info("Nonce     :%s", nonce)
                 
+                ############ Main Print statements #################
+                
+                # Block created date (e.g. 1st April 2024 at 20:40)
+                # The nonce that was used to successfully hash the block, and the difficulty level
+                
+                
                 print("Block Version         :", hex(version))
                 print("Block Previous Hash   :", bytes.fromhex(prev_block_hash)[::-1].hex())
                 print("Merkle Root       :", bytes.fromhex(merkle_root)[::-1].hex())
@@ -253,6 +173,16 @@ def read_tx_block_messages(sock, expected_tx_count, hash):
                 print("Bits     :", bits)
                 print("Nonce     :", nonce)
                 
+                # hash verification
+                
+                #converting the hash to block hash
+                hash= padded_block_hash(str(hash))
+                
+                logging.info("Block Hash      :%s", hash)
+                
+                print("Block Hash : ",hash)
+                
+                logging.info("##################### ##########################\n")
                 # if calculated_hash == hash:
                 #     print("Hashes Match! Block is Valid.")
                 # else:
@@ -316,7 +246,7 @@ if __name__ == '__main__':
        
     print("---------------------------------------------------------------------------------------------------------")
     logging.info("---------------------------------------------------------------------------------------------------------\n")
-
+    logging.info("Waiting for blocks to arrive.....")
  
     while(True):
         response_addr=s.recv(3072) # increased to accomodate more message from bitcoin network
@@ -346,12 +276,12 @@ if __name__ == '__main__':
                 # print("Inventory Details:",response_addr[24:],"\n")
                 
                 print("Inventory Details: \n")
-                logging.info("Inventory Details: \n")
+               
                 
                 # Extract the count
                 count = struct.unpack('<B', inv_payload[:1])[0]  # '<B' is little-endian unsigned char
                 print(f'Count: {count}')
-                logging.info(f'Count: {count}')
+                
                 
                 # Initialize list to hold inventory vectors
                 inventory_vectors = []
@@ -378,15 +308,18 @@ if __name__ == '__main__':
                 # Print the inventory vectors
                 for idx, (vector_type, vector_hash) in enumerate(inventory_vectors):
                     print(f'Inventory Vector {idx + 1}:')
-                    logging.info(f'Inventory Vector {idx + 1}:')
                     print(f'  Type: {vector_type}')
                     print(f'  Hash: {vector_hash}')
-                    logging.info(f'  Type: {vector_type}')
-                    logging.info(f'  Hash: {vector_hash}')
+                    if(vector_type==2 or vector_type=='2'):
+                        logging.info("Inventory Details: \n")
+                        logging.info(f'Count: {count}')
+                        logging.info(f'Inventory Vector {idx + 1}:')
+                        logging.info(f'  Type: {vector_type}')
+                        logging.info(f'  Hash: {vector_hash}')
                     # to get transaction details for the inv vectors
                 s.send(payload_message(MAGIC_NUMBER, 'getdata', inv_payload))
                 read_tx_block_messages(s, count, vector_hash)
-                logging.info("---------------------------------------------------------------------------------------------------------")
+               # logging.info("---------------------------------------------------------------------------------------------------------")
                 print("---------------------------------------------------------------------------------------------------------")
         else:
             print("######################## Skipped ##########################")
